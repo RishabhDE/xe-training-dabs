@@ -1,0 +1,82 @@
+bundle:
+  name: xe_training_dabs
+
+variables:
+  catalog:
+    description: Unity Catalog name
+  schema:
+    description: Target schema
+  warehouse_id:
+    description: SQL Warehouse ID for notifications
+
+targets:
+  dev:
+    mode: development
+    default: true
+    workspace:
+      host: https://adb-1445520961226240.0.azuredatabricks.net
+    variables:
+      catalog: xe_training_catalog
+      schema: databricks_dev
+      warehouse_id: auto
+
+  staging:
+    workspace:
+      host: https://adb-1445520961226240.0.azuredatabricks.net
+    variables:
+      catalog: xe_training_catalog
+      schema: databricks_staging
+      warehouse_id: auto
+
+  prod:
+    mode: production
+    workspace:
+      host: https://adb-1445520961226240.0.azuredatabricks.net
+    variables:
+      catalog: xe_training_catalog
+      schema: databricks
+      warehouse_id: auto
+    run_as:
+      service_principal_name: xe-training-sp
+
+resources:
+  jobs:
+    flight_data_pipeline:
+      name: "[${bundle.target}] Flight Data Pipeline"
+      tasks:
+        - task_key: ingest_flight_events
+          notebook_task:
+            notebook_path: ./src/01_ingest.py
+            base_parameters:
+              catalog: ${var.catalog}
+              schema: ${var.schema}
+          new_cluster:
+            spark_version: "15.4.x-scala2.12"
+            num_workers: 1
+            node_type_id: Standard_DS3_v2
+
+        - task_key: transform_sessions
+          depends_on:
+            - task_key: ingest_flight_events
+          notebook_task:
+            notebook_path: ./src/02_transform.py
+            base_parameters:
+              catalog: ${var.catalog}
+              schema: ${var.schema}
+          new_cluster:
+            spark_version: "15.4.x-scala2.12"
+            num_workers: 1
+            node_type_id: Standard_DS3_v2
+
+        - task_key: validate_quality
+          depends_on:
+            - task_key: transform_sessions
+          notebook_task:
+            notebook_path: ./src/03_validate.py
+            base_parameters:
+              catalog: ${var.catalog}
+              schema: ${var.schema}
+          new_cluster:
+            spark_version: "15.4.x-scala2.12"
+            num_workers: 1
+            node_type_id: Standard_DS3_v2
