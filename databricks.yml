@@ -8,8 +8,6 @@ variables:
     description: Target schema
   warehouse_id:
     description: SQL Warehouse ID for notifications
-  nonexistent_field_that_breaks_validation: true
-
 targets:
   dev:
     mode: development
@@ -50,7 +48,7 @@ resources:
             notebook_path: ./src/01_ingest.py
             base_parameters:
               catalog: ${var.catalog}
-              schema: ${var.schema}
+              schema: ${var.undefined_variable}
           new_cluster:
             spark_version: "15.4.x-scala2.12"
             num_workers: 1
