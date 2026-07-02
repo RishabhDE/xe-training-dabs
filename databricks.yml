@@ -8,6 +8,7 @@ variables:
     description: Target schema
   warehouse_id:
     description: SQL Warehouse ID for notifications
+  nonexistent_field_that_breaks_validation: true
 
 targets:
   dev:
